@@ -1,6 +1,7 @@
 /**
 *
 * Author: Caden Douglas
+* @due 12/01/2025
 */
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -14,12 +15,14 @@ import javafx.scene.control.TextInputDialog;
 import java.util.*;
 
 // Main GUI class
-public class TrafficFX extends Application {
+public class TrafficFX extends Application 
+{
     private Simulator simulator;
     private Canvas canvas;
 
     @Override
-    public void start(Stage stage) {
+    public void start(Stage stage) 
+    {
         // User inputs
         TextInputDialog dialogNS = new TextInputDialog("30");
         dialogNS.setHeaderText("Green time North/South (seconds):");
@@ -47,13 +50,17 @@ public class TrafficFX extends Application {
         stage.show();
 
         // AnimationTimer for simulation updates
-        new AnimationTimer() {
+        new AnimationTimer() 
+        {
             @Override
-            public void handle(long now) {
-                if (simulator.isRunning()) {
+            public void handle(long now) 
+            {
+                if (simulator.isRunning()) 
+                {
                     simulator.update();
                     draw();
-                } else {
+                } else 
+                {
                     stop();
                     // Output stats to console
                     System.out.println("Simulation ended. Stats:");
@@ -63,7 +70,8 @@ public class TrafficFX extends Application {
         }.start();
     }
 
-    private void draw() {
+    private void draw() 
+    {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
@@ -86,14 +94,16 @@ public class TrafficFX extends Application {
         // Add for east, west similarly, adjusting positions and orientations
 
         // Draw cars
-        for (Car car : simulator.getAllCars()) {
+        for (Car car : simulator.getAllCars()) 
+        {
             javafx.geometry.Point2D pos = getCarPosition(car);
             gc.setFill(car.getColor());
             gc.fillRect(pos.getX(), pos.getY(), 20, 10); // Simple car rectangle
         }
     }
 
-    private void drawLight(GraphicsContext gc, double x, double y, String state) {
+    private void drawLight(GraphicsContext gc, double x, double y, String state) 
+    {
         gc.setFill(Color.BLACK);
         gc.fillRect(x, y, 20, 60);
         gc.setFill("red".equals(state) ? Color.RED : Color.DARKGRAY);
@@ -104,7 +114,8 @@ public class TrafficFX extends Application {
         gc.fillOval(x + 2, y + 42, 16, 16);
     }
 
-    private javafx.geometry.Point2D getCarPosition(Car car) {
+    private javafx.geometry.Point2D getCarPosition(Car car) 
+    {
         // Map Place row/col to pixels based on direction
         Place place = car.getPlace();
         double px = place.col * 20; // PLACE_SIZE = 20
@@ -113,13 +124,15 @@ public class TrafficFX extends Application {
         return new javafx.geometry.Point2D(px, py);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) 
+    {
         launch(args);
     }
 }
 
 // Stub for Simulator (integrate with core)
-class Simulator {
+class Simulator 
+{
     // Assume core classes defined here or imported
     private boolean running = true;
     private int time = 0;
@@ -130,13 +143,15 @@ class Simulator {
     private List<Car> cars = new ArrayList<>();
     // Roads, Queues, etc.
 
-    public Simulator(int greenNS, int greenEW, double prob, int dur) {
+    public Simulator(int greenNS, int greenEW, double prob, int dur) 
+    {
         arrivalProb = prob;
         duration = dur;
         // Initialize lights, roads, queues
     }
 
-    public void update() {
+    public void update() 
+    {
         time++;
         if (time > duration) running = false;
         // Update lights
@@ -145,15 +160,55 @@ class Simulator {
         // Move cars if free
     }
 
-    public boolean isRunning() { return running; }
-    public List<Car> getAllCars() { return cars; }
-    public TrafficLight getTrafficLight(String dir) { return trafficLights.get(dir); }
-    public String getStats() { return "Cars traversed: " + cars.size(); } // Example
+    public boolean isRunning() 
+    { 
+        return running; 
+    }
+    public List<Car> getAllCars() 
+    { 
+        return cars; 
+    }
+    public TrafficLight getTrafficLight(String dir) 
+    { 
+        return trafficLights.get(dir); 
+    }
+    public String getStats() 
+    { 
+        return "Cars traversed: " + cars.size(); 
+    } // Example
 }
 
 // Core class stubs (as per project)
-class Place { int row, col; boolean occupied; /* ... */ }
-class Car { Place place; javafx.scene.paint.Color color; String direction; public Place getPlace() { return place; } public javafx.scene.paint.Color getColor() { return color; } /* move, etc. */ }
-class Road { /* linked Places */ }
-class TrafficLight { String state; public String getState() { return state; } /* update */ }
-class CarQueue { /* queue of cars */ }
+class Place 
+{ 
+    int row, col; 
+    boolean occupied; /* ... */ 
+}
+class Car 
+{ 
+    Place place; 
+    javafx.scene.paint.Color color; 
+    String direction; 
+    public Place getPlace() 
+    { 
+        return place; 
+    } 
+    public javafx.scene.paint.Color getColor() 
+    { 
+        return color; 
+    } /* move, etc. */ 
+}
+class Road 
+{ /* linked Places */ 
+}
+class TrafficLight 
+{ 
+    String state; 
+    public String getState() 
+    { 
+        return state; 
+    } /* update */ 
+}
+class CarQueue 
+{ /* queue of cars */ 
+}
