@@ -90,7 +90,7 @@ public class TrafficFX extends Application
 
         // Draw traffic lights (one for each direction)
         drawLight(gc, 360, 180, simulator.getTrafficLight("north").getState()); // North
-        drawLight(gc, 180, 360, simulator.getTrafficLight("south").getState()); // South
+        drawLight(gc, 180, 360, simulator.getTrafficLight("east").getState()); // South
         // Add for east, west similarly, adjusting positions and orientations
 
         // Draw cars
@@ -145,8 +145,15 @@ class Simulator
 
     public Simulator(int greenNS, int greenEW, double prob, int dur) 
     {
-        arrivalProb = prob;
-        duration = dur;
+        this.arrivalProb = prob;
+        this.duration = dur;
+        TrafficLight nsLight = new TrafficLight(greenNS, 5, greenEW, "green");
+        TrafficLight ewLight = new TrafficLight(greenEW, 5, greenNS, "red");
+        this.trafficLights.put("north", nsLight);
+        this.trafficLights.put("south", nsLight);
+        this.trafficLights.put("east", ewLight);
+        this.trafficLights.put("west", ewLight);
+        
         // Initialize lights, roads, queues
     }
 
@@ -211,7 +218,17 @@ class Road
 }
 class TrafficLight 
 { 
-    String state; 
+    private String state; 
+    private int greenDuration;
+    private int yellowDuration;
+    private int redDuration;
+    public TrafficLight(int greenDuration, int yellowDuration, int redDuration, String state)
+    {
+        this.state = state;
+        this.greenDuration = greenDuration;
+        this.yellowDuration = yellowDuration;
+        this.redDuration = redDuration;
+    }
     public String getState() 
     { 
         return state; 
