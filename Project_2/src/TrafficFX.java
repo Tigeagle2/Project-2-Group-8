@@ -200,6 +200,14 @@ class Car
 }
 class Road 
 { /* linked Places */ 
+    public void getFirstPlace() 
+    {
+        
+    }
+    public void getPlaceAt(int index)
+    {
+        
+    }
 }
 class TrafficLight 
 { 
@@ -208,7 +216,18 @@ class TrafficLight
     { 
         return state; 
     } /* update */ 
+    public void update()
+    {
+        
+    }
+    public void setTimings(int greenNS, int greenEW)
+    {
+    }
 }
 class CarQueue 
 { /* queue of cars */ 
+    public void update() // add options to add, move, and remove
+    {
+        
+    }
 }
