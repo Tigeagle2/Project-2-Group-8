@@ -89,8 +89,8 @@ public class TrafficFX extends Application
         gc.fillRect(200, 200, 150, 150);
 
         // Draw traffic lights (one for each direction)
-        drawLight(gc, 360, 180, simulator.getTrafficLight("north").getState()); // North
-        drawLight(gc, 180, 360, simulator.getTrafficLight("east").getState()); // South
+        drawLight(gc, 360, 180, simulator.getTrafficLight("east").getState()); // North
+        drawLight(gc, 180, 360, simulator.getTrafficLight("north").getState()); // South
         // Add for east, west similarly, adjusting positions and orientations
 
         // Draw cars
