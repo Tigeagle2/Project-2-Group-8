@@ -19,6 +19,9 @@ public class TrafficFX extends Application
 {
     private Simulator simulator;
     private Canvas canvas;
+    private static final long target = 60;
+    private static final long frameTime = 1_000_000_000 / target;
+    private long lastUpdate = 0;
 
     @Override
     public void start(Stage stage) 
@@ -26,17 +29,17 @@ public class TrafficFX extends Application
         // User inputs
         TextInputDialog dialogNS = new TextInputDialog("30");
         dialogNS.setHeaderText("Green time North/South (seconds):");
-        int greenNS = Integer.parseInt(dialogNS.showAndWait().orElse("30"));
+        int greenNS = (Integer.parseInt(dialogNS.showAndWait().orElse("30"))) * 60;
 
         TextInputDialog dialogEW = new TextInputDialog("30");
         dialogEW.setHeaderText("Green time East/West (seconds):");
-        int greenEW = Integer.parseInt(dialogEW.showAndWait().orElse("30"));
+        int greenEW = (Integer.parseInt(dialogEW.showAndWait().orElse("30"))) * 60;
 
         TextInputDialog dialogProb = new TextInputDialog("6");
         dialogProb.setHeaderText("Car arrival probability (1/n, e.g., 6):");
         int probN = Integer.parseInt(dialogProb.showAndWait().orElse("6"));
 
-        TextInputDialog dialogDuration = new TextInputDialog("1000");
+        TextInputDialog dialogDuration = new TextInputDialog("10000");
         dialogDuration.setHeaderText("Simulation duration (timer units):");
         int duration = Integer.parseInt(dialogDuration.showAndWait().orElse("1000"));
 
@@ -52,19 +55,25 @@ public class TrafficFX extends Application
         // AnimationTimer for simulation updates
         new AnimationTimer() 
         {
+            
             @Override
             public void handle(long now) 
             {
-                if (simulator.isRunning()) 
+                if (now - lastUpdate>= frameTime)
                 {
-                    simulator.update();
-                    draw();
-                } else 
-                {
-                    stop();
-                    // Output stats to console
-                    System.out.println("Simulation ended. Stats:");
-                    System.out.println(simulator.getStats());
+                    
+                
+                    if (simulator.isRunning()) 
+                    {
+                        simulator.update();
+                        draw();
+                    } else 
+                    {
+                        stop();
+                        // Output stats to console
+                        System.out.println("Simulation ended. Stats:");
+                        System.out.println(simulator.getStats());
+                    }
                 }
             }
         }.start();
@@ -78,10 +87,10 @@ public class TrafficFX extends Application
         // Draw roads (4 lanes crossing at center)
         gc.setFill(Color.GRAY);
         // Horizontal (East-West)
-        gc.fillRect(0, 250, canvas.getWidth(), 50); // Bottom inbound
+        gc.fillRect(0, 250, canvas.getWidth(), 100); // Bottom inbound
         gc.fillRect(0, 200, canvas.getWidth(), 50); // Top outbound
         // Vertical (North-South)
-        gc.fillRect(250, 0, 50, canvas.getHeight()); // Right inbound
+        gc.fillRect(250, 0, 100, canvas.getHeight()); // Right inbound
         gc.fillRect(200, 0, 50, canvas.getHeight()); // Left outbound
 
         // Draw intersection
@@ -89,8 +98,10 @@ public class TrafficFX extends Application
         gc.fillRect(200, 200, 150, 150);
 
         // Draw traffic lights (one for each direction)
-        drawLight(gc, 360, 180, simulator.getTrafficLight("east").getState()); // North
-        drawLight(gc, 180, 360, simulator.getTrafficLight("north").getState()); // South
+        drawLight(gc, 350, 135, simulator.getTrafficLight("east").getState()); // North
+        drawLight(gc, 350, 355, simulator.getTrafficLight("north").getState());
+        drawLight(gc, 180, 135, simulator.getTrafficLight("south").getState()); // North
+        drawLight(gc, 180, 355, simulator.getTrafficLight("west").getState());// South
         // Add for east, west similarly, adjusting positions and orientations
 
         // Draw cars
@@ -147,8 +158,8 @@ class Simulator
     {
         this.arrivalProb = prob;
         this.duration = dur;
-        TrafficLight nsLight = new TrafficLight(greenNS, 5, greenEW, "green");
-        TrafficLight ewLight = new TrafficLight(greenEW, 5, greenNS, "red");
+        TrafficLight nsLight = new TrafficLight(greenNS, 180, greenEW, "green");
+        TrafficLight ewLight = new TrafficLight(greenEW, 180, greenNS, "red");
         this.trafficLights.put("north", nsLight);
         this.trafficLights.put("south", nsLight);
         this.trafficLights.put("east", ewLight);
@@ -159,9 +170,16 @@ class Simulator
 
     public void update() 
     {
-        time++;
-        if (time > duration) running = false;
+        this.time++;
+        if (this.time > this.duration) 
+        {
+            this.running = false;
+        }
         // Update lights
+        this.trafficLights.get("north").update();
+        this.trafficLights.get("south").update();
+        this.trafficLights.get("east").update();
+        this.trafficLights.get("west").update();
         // Update queues and cars
         // Add new cars if Math.random() < arrivalProb
         // Move cars if free
@@ -169,7 +187,7 @@ class Simulator
 
     public boolean isRunning() 
     { 
-        return running; 
+        return this.running; 
     }
     public List<Car> getAllCars() 
     { 
@@ -177,11 +195,11 @@ class Simulator
     }
     public TrafficLight getTrafficLight(String dir) 
     { 
-        return trafficLights.get(dir); 
+        return this.trafficLights.get(dir); 
     }
     public String getStats() 
     { 
-        return "Cars traversed: " + cars.size(); 
+        return "Cars traversed: " + this.cars.size(); 
     } // Example
 }
 
@@ -198,11 +216,11 @@ class Car
     String direction; 
     public Place getPlace() 
     { 
-        return place; 
+        return this.place; 
     } 
     public javafx.scene.paint.Color getColor() 
     { 
-        return color; 
+        return this.color; 
     } /* move, etc. */ 
 }
 class Road 
@@ -222,6 +240,7 @@ class TrafficLight
     private int greenDuration;
     private int yellowDuration;
     private int redDuration;
+    private int timeElasped = 0;
     public TrafficLight(int greenDuration, int yellowDuration, int redDuration, String state)
     {
         this.state = state;
@@ -231,14 +250,30 @@ class TrafficLight
     }
     public String getState() 
     { 
-        return state; 
+        return this.state; 
     } /* update */ 
     public void update()
     {
+        this.timeElasped++;
+        if(this.state.equals("green") && this.timeElasped >= this.greenDuration)
+        {
+            this.state = "yellow";
+            this.timeElasped = 0;
+        } else if(this.state.equals("yellow") && this.timeElasped >= this.yellowDuration)
+        {
+            this.state = "red";
+            this.timeElasped = 0;
+        } else if(this.state.equals("red") && this.timeElasped >= this.redDuration)
+        {
+            this.state = "green";
+            this.timeElasped = 0;
+        }
         
     }
-    public void setTimings(int greenNS, int greenEW)
+    public void setTimings(int greenTime, int redTime)
     {
+        this.greenDuration = greenTime;
+        this.redDuration = redTime;
     }
 }
 class CarQueue 
