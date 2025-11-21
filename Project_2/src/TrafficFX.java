@@ -42,8 +42,10 @@ public class TrafficFX extends Application
         TextInputDialog dialogDuration = new TextInputDialog("10000");
         dialogDuration.setHeaderText("Simulation duration (timer units):");
         int duration = Integer.parseInt(dialogDuration.showAndWait().orElse("1000"));
-
+        Place place1 = new Place(5, 5);
+        Car car1 = new Car(Color.BLUE, place1, "north");
         simulator = new Simulator(greenNS, greenEW, 1.0 / probN, duration);
+        simulator.addCar(car1);
 
         canvas = new Canvas(600, 600);
         StackPane root = new StackPane(canvas);
@@ -189,6 +191,10 @@ class Simulator
     { 
         return this.running; 
     }
+    public void addCar(Car car)
+    {
+        cars.add(car);
+    }
     public List<Car> getAllCars() 
     { 
         return cars; 
@@ -207,13 +213,62 @@ class Simulator
 class Place 
 { 
     int row, col; 
-    boolean occupied; /* ... */ 
+    private boolean occupied; /* ... */ 
+    private Car occupiedBy;
+    private Place nextPlace;
+    public Place(int row, int col)
+    {
+        this.row = row;
+        this.col = col;
+        this.occupiedBy = null;
+        this.occupied = false;
+        this.nextPlace = null;
+    }
+    public boolean freeToMove()
+    {
+        return this.occupiedBy == null && !this.occupied;
+    }
+    public Place next()
+    {
+        return this.nextPlace;
+    }
+    public void setNext(Place next)
+    {
+        this.nextPlace = next;
+    }
+    public void block()
+    {
+        this.occupied = true;
+    }
+    public void unblock()
+    {
+        this.occupied = false;
+    }
+    public Car getOccupiedBy()
+    {
+        return this.occupiedBy;
+    }
+    public void setOccupiedBy(Car car)
+    {
+        this.occupiedBy = car;
+    }
 }
 class Car 
 { 
-    Place place; 
-    javafx.scene.paint.Color color; 
-    String direction; 
+    private Place place; 
+    private Place lastPlace;
+    private javafx.scene.paint.Color color; 
+    private String direction; 
+    private boolean left;
+    public Car(Color color, Place place, String direction)
+    {
+        this.color = color;
+        this.place = place;
+        this.direction = direction;
+        this.lastPlace = null;
+        this.place.setOccupiedBy(this);
+        this.left = false;
+    }
     public Place getPlace() 
     { 
         return this.place; 
@@ -221,7 +276,35 @@ class Car
     public javafx.scene.paint.Color getColor() 
     { 
         return this.color; 
-    } /* move, etc. */ 
+    } 
+    public String getDirection()
+    {
+        return this.direction;
+    }/* move, etc. */ 
+    public boolean canMove(){
+        Place next = place.next();
+        return next!= null && next.freeToMove();
+    }
+    public void move()
+    {
+        if (!canMove()) return;
+        if(this.lastPlace != null)
+        {
+            this.lastPlace.setOccupiedBy(null);
+            this.lastPlace = this.place;
+            this.place = this.place.next();
+            this.place.setOccupiedBy(this);
+        }
+        if(this.place.next() == null)
+        {
+            this.left = true;
+        }    
+    }
+    public boolean atEnd()
+        {
+            return this.left;
+        }
+    
 }
 class Road 
 { /* linked Places */ 
