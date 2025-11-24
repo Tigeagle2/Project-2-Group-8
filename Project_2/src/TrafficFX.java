@@ -176,12 +176,13 @@ class Simulator
         if (this.time > this.duration) 
         {
             this.running = false;
+            return;
         }
         // Update lights
         this.trafficLights.get("north").update();
-        this.trafficLights.get("south").update();
+        //this.trafficLights.get("south").update();
         this.trafficLights.get("east").update();
-        this.trafficLights.get("west").update();
+        //this.trafficLights.get("west").update();
         // Update queues and cars
         // Add new cars if Math.random() < arrivalProb
         // Move cars if free
@@ -307,14 +308,42 @@ class Car
     
 }
 class Road 
-{ /* linked Places */ 
-    public void getFirstPlace() 
+{ 
+    private List<Place> places;
+    private String direction;
+    public Road(String direction, int length,int startRow, int startCol,boolean isHorizontal)
     {
-        
+        this.direction = direction;
+        this.places = new ArrayList<>();
+        Place previous = null;
+        for(int i = 0; i < length; i++)
+        {
+            int row = isHorizontal ? startRow : startRow + i;
+            int col = isHorizontal ? startCol + i: startCol;
+            Place current = new Place(row, col);
+            places.add(current);
+            if(previous != null)
+            {
+                previous.setNext(current);
+            }
+            previous = current;
+        }
     }
-    public void getPlaceAt(int index)
+    public Place getFirstPlace() 
     {
-        
+        return this.places.isEmpty() ? null : this.places.get(0);
+    }
+    public Place getPlaceAt(int index)
+    {
+        if (index >=0 && index < places.size())
+        {
+            return this.places.get(index);
+        }
+        return null;
+    }
+    public String getDirection()
+    {
+        return this.direction;
     }
 }
 class TrafficLight 
@@ -361,8 +390,51 @@ class TrafficLight
 }
 class CarQueue 
 { /* queue of cars */ 
-    public void update() // add options to add, move, and remove
+    private Queue<Car> cars;
+    private Road road;
+    private String direction;
+    public CarQueue(Road road, String direction)
     {
-        
+        this.cars = new LinkedList<>();
+        this.road =  road;
+        this.direction = direction;
     }
+    public void update(double arrivalProb) // add options to add, move, and remove
+    {
+        if(Math.random() < arrivalProb)
+        {
+            Place startPlace = road.getFirstPlace();
+            if(startPlace != null && startPlace.getOccupiedBy() == null)
+            {
+                Car newCar = new Car(Color.RED, startPlace, direction);
+                cars.offer(newCar);
+            }
+        }
+        if(!cars.isEmpty())
+        {
+            Car frontCar = cars.peek();
+            if(frontCar.getPlace().getOccupiedBy() == frontCar && frontCar.canMove())
+            {
+                frontCar.move();
+            }
+        }
+    }
+    public void addCar(Car car)
+    {
+        this.cars.offer(car);
+    }
+    public Car removeCar()
+    {
+        return this.cars.poll();
+    }
+    public int getSize()
+    {
+        return this.cars.size();
+    }
+    public List<Car> getCars()
+    {
+        return new ArrayList<>(cars);
+    }
+    
+        
 }
