@@ -214,8 +214,8 @@ class Simulator
         trafficLights.put("west", ewLight);
 
         // Create roads: each road is length 12 places (tweakable)
-        Road north = new Road("north", 12, OFFSET_ROW - 12, OFFSET_COL + 6, false); // vertical downwards toward intersection
-        Road south = new Road("south", 12, OFFSET_ROW + 18, OFFSET_COL + 14, false); // vertical upwards
+        Road north = new Road("north", 12, OFFSET_ROW - 10, OFFSET_COL + 7, false); // vertical downwards toward intersection
+        Road south = new Road("south", 12, OFFSET_ROW + 10, OFFSET_COL + 7, false); // vertical upwards
         Road east  = new Road("east", 12, OFFSET_ROW + 6, OFFSET_COL + 18, true); // horizontal leftwards
         Road west  = new Road("west", 12, OFFSET_ROW + 14, OFFSET_COL - 12, true); // horizontal rightwards
 
