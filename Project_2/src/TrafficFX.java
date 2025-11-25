@@ -1,8 +1,14 @@
 /**
-*
-* Author: Caden Douglas
-* @due 12/01/2025
-*/
+ *
+ * Author: Caden Douglas
+ * @due 12/01/2025
+ *
+ * Fixed and completed version of the original starter code.
+ * Implements Roads, Places, CarQueue, TrafficLight, Simulator, and car movement.
+ *
+ * NOTE: Run with JavaFX on your module path.
+ */
+
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -13,15 +19,19 @@ import javafx.animation.AnimationTimer;
 import javafx.scene.paint.Color;
 import javafx.scene.control.TextInputDialog;
 import java.util.*;
+import javafx.geometry.Point2D;
 
-// Main GUI class
 public class TrafficFX extends Application 
 {
     private Simulator simulator;
     private Canvas canvas;
-    private static final long target = 60;
+    public static final long target = 20; // frames per second target
     private static final long frameTime = 1_000_000_000 / target;
     private long lastUpdate = 0;
+
+    // visual grid scale
+    private static final int CELL_SIZE = 20;
+    private static final int CANVAS_SIZE = 600;
 
     @Override
     public void start(Stage stage) 
@@ -29,11 +39,11 @@ public class TrafficFX extends Application
         // User inputs
         TextInputDialog dialogNS = new TextInputDialog("30");
         dialogNS.setHeaderText("Green time North/South (seconds):");
-        int greenNS = (Integer.parseInt(dialogNS.showAndWait().orElse("30"))) * 60;
+        int greenNSsec = (Integer.parseInt(dialogNS.showAndWait().orElse("30")));
 
         TextInputDialog dialogEW = new TextInputDialog("30");
         dialogEW.setHeaderText("Green time East/West (seconds):");
-        int greenEW = (Integer.parseInt(dialogEW.showAndWait().orElse("30"))) * 60;
+        int greenEWsec = (Integer.parseInt(dialogEW.showAndWait().orElse("30")));
 
         TextInputDialog dialogProb = new TextInputDialog("6");
         dialogProb.setHeaderText("Car arrival probability (1/n, e.g., 6):");
@@ -41,15 +51,21 @@ public class TrafficFX extends Application
 
         TextInputDialog dialogDuration = new TextInputDialog("10000");
         dialogDuration.setHeaderText("Simulation duration (timer units):");
-        int duration = Integer.parseInt(dialogDuration.showAndWait().orElse("1000"));
-        Place place1 = new Place(5, 5);
-        Car car1 = new Car(Color.BLUE, place1, "north");
-        simulator = new Simulator(greenNS, greenEW, 1.0 / probN, duration);
-        simulator.addCar(car1);
+        int duration = Integer.parseInt(dialogDuration.showAndWait().orElse("10000"));
 
-        canvas = new Canvas(600, 600);
+        // Convert seconds to simulation ticks (we use ticks ~ frames)
+        int greenNS = Math.max(1, greenNSsec * (int)target);
+        int greenEW = Math.max(1, greenEWsec * (int)target);
+
+        // initialize simulator with proper timings, arrival probability per tick
+        simulator = new Simulator(greenNS, greenEW, 1.0 / Math.max(1, probN), duration);
+
+        // create a sample car to show initial state (optional)
+        // Place p = new Place(5,5); Car c = new Car(Color.BLUE, p, "north"); simulator.addCar(c);
+
+        canvas = new Canvas(CANVAS_SIZE, CANVAS_SIZE);
         StackPane root = new StackPane(canvas);
-        Scene scene = new Scene(root, 600, 600);
+        Scene scene = new Scene(root, CANVAS_SIZE, CANVAS_SIZE);
         stage.setTitle("Traffic Intersection Simulation");
         stage.setScene(scene);
         stage.show();
@@ -57,25 +73,28 @@ public class TrafficFX extends Application
         // AnimationTimer for simulation updates
         new AnimationTimer() 
         {
-            
             @Override
             public void handle(long now) 
             {
-                if (now - lastUpdate>= frameTime)
+                if (lastUpdate == 0) {
+                    lastUpdate = now;
+                    return;
+                }
+                if (now - lastUpdate >= frameTime)
                 {
-                    
-                
                     if (simulator.isRunning()) 
                     {
                         simulator.update();
                         draw();
-                    } else 
+                    } 
+                    else 
                     {
                         stop();
                         // Output stats to console
                         System.out.println("Simulation ended. Stats:");
                         System.out.println(simulator.getStats());
                     }
+                    lastUpdate = now;
                 }
             }
         }.start();
@@ -95,23 +114,30 @@ public class TrafficFX extends Application
         gc.fillRect(250, 0, 100, canvas.getHeight()); // Right inbound
         gc.fillRect(200, 0, 50, canvas.getHeight()); // Left outbound
 
-        // Draw intersection
+        // Draw intersection box
         gc.setFill(Color.BLACK);
         gc.fillRect(200, 200, 150, 150);
 
-        // Draw traffic lights (one for each direction)
-        drawLight(gc, 350, 135, simulator.getTrafficLight("east").getState()); // North
-        drawLight(gc, 350, 355, simulator.getTrafficLight("north").getState());
-        drawLight(gc, 180, 135, simulator.getTrafficLight("south").getState()); // North
-        drawLight(gc, 180, 355, simulator.getTrafficLight("west").getState());// South
-        // Add for east, west similarly, adjusting positions and orientations
+        // Draw traffic lights around intersection using simulator lights
+        drawLight(gc, 350, 140, simulator.getTrafficLight("north").getState()); // North-facing
+        drawLight(gc, 180, 350, simulator.getTrafficLight("south").getState()); // South-facing
+        drawLight(gc, 350, 350, simulator.getTrafficLight("east").getState());  // East-facing
+        drawLight(gc, 180, 140, simulator.getTrafficLight("west").getState());  // West-facing
 
-        // Draw cars
+        // Draw cars based on their Place positions
         for (Car car : simulator.getAllCars()) 
         {
-            javafx.geometry.Point2D pos = getCarPosition(car);
+            Place place = car.getPlace();
+            if (place == null) continue;
+            Point2D pos = getCarPosition(car);
             gc.setFill(car.getColor());
-            gc.fillRect(pos.getX(), pos.getY(), 20, 10); // Simple car rectangle
+            String dir = car.getDirection();
+            // draw oriented rectangles for clarity
+            if (dir.equals("north") || dir.equals("south")) {
+                gc.fillRect(pos.getX(), pos.getY(), 10, 20);
+            } else {
+                gc.fillRect(pos.getX(), pos.getY(), 20, 10);
+            }
         }
     }
 
@@ -123,18 +149,21 @@ public class TrafficFX extends Application
         gc.fillOval(x + 2, y + 2, 16, 16);
         gc.setFill("yellow".equals(state) ? Color.YELLOW : Color.DARKGRAY);
         gc.fillOval(x + 2, y + 22, 16, 16);
-        gc.setFill("green".equals(state) ? Color.GREEN : Color.DARKGRAY);
+        gc.setFill("green".equals(state) ? Color.LIMEGREEN : Color.DARKGRAY);
         gc.fillOval(x + 2, y + 42, 16, 16);
     }
 
-    private javafx.geometry.Point2D getCarPosition(Car car) 
-    {
-        // Map Place row/col to pixels based on direction
+    private Point2D getCarPosition(Car car) 
+{
+   
+        // Map Place row/col to pixels based on a simple offset and CELL_SIZE
         Place place = car.getPlace();
-        double px = place.col * 20; // PLACE_SIZE = 20
-        double py = place.row * 20;
-        // Adjust based on direction (e.g., for northbound, invert y)
-        return new javafx.geometry.Point2D(px, py);
+        double px = place.col * CELL_SIZE + 40; // offset to center visible area
+        double py = place.row * CELL_SIZE + 40;
+        // clamp
+        px = Math.max(0, Math.min(px, CANVAS_SIZE - 20));
+        py = Math.max(0, Math.min(py, CANVAS_SIZE - 20));
+        return new Point2D(px, py);
     }
 
     public static void main(String[] args) 
@@ -143,117 +172,217 @@ public class TrafficFX extends Application
     }
 }
 
-// Stub for Simulator (integrate with core)
+
+
+//Simulator: orchestrates roads, queues, traffic lights, and car movement 
 class Simulator 
 {
-    // Assume core classes defined here or imported
     private boolean running = true;
     private int time = 0;
-    private int duration;
-    private double arrivalProb;
-    // TrafficLight instances for each direction
-    private Map<String, TrafficLight> trafficLights = new HashMap<>();
-    private List<Car> cars = new ArrayList<>();
-    // Roads, Queues, etc.
+    private final int duration;
+    private final double arrivalProb; // probability per tick
+
+    private final Map<String, TrafficLight> trafficLights = new HashMap<>();
+    private final Map<String, Road> roads = new HashMap<>();
+    private final Map<String, CarQueue> queues = new HashMap<>();
+
+    private final List<Car> cars = new ArrayList<>();
+    private final List<Car> finishedCars = new ArrayList<>();
+
+    // statistics
+    private int totalCreated = 0;
+    private int totalExited = 0;
+
+    // intersection placement constants (logical grid positions chosen to map to drawing)
+    private static final int OFFSET_ROW = 5;
+    private static final int OFFSET_COL = 5;
 
     public Simulator(int greenNS, int greenEW, double prob, int dur) 
     {
         this.arrivalProb = prob;
         this.duration = dur;
-        TrafficLight nsLight = new TrafficLight(greenNS, 180, greenEW, "green");
-        TrafficLight ewLight = new TrafficLight(greenEW, 180, greenNS, "red");
-        this.trafficLights.put("north", nsLight);
-        this.trafficLights.put("south", nsLight);
-        this.trafficLights.put("east", ewLight);
-        this.trafficLights.put("west", ewLight);
-        
-        // Initialize lights, roads, queues
+
+        // Set yellow to 6 * target ticks (project requests yellow = 6 units)
+        int yellow = 6 * (int)TrafficFX.target;
+
+        // Create traffic lights: NS green initially, EW red initially
+        TrafficLight nsLight = new TrafficLight(greenNS, yellow, greenEW, "green");
+        TrafficLight ewLight = new TrafficLight(greenEW, yellow, greenNS, "red");
+        trafficLights.put("north", nsLight);
+        trafficLights.put("south", nsLight); // north and south share
+        trafficLights.put("east", ewLight);
+        trafficLights.put("west", ewLight);
+
+        // Create roads: each road is length 12 places (tweakable)
+        Road north = new Road("north", 12, OFFSET_ROW - 12, OFFSET_COL + 6, false); // vertical downwards toward intersection
+        Road south = new Road("south", 12, OFFSET_ROW + 18, OFFSET_COL + 14, false); // vertical upwards
+        Road east  = new Road("east", 12, OFFSET_ROW + 6, OFFSET_COL + 18, true); // horizontal leftwards
+        Road west  = new Road("west", 12, OFFSET_ROW + 14, OFFSET_COL - 12, true); // horizontal rightwards
+
+        roads.put("north", north);
+        roads.put("south", south);
+        roads.put("east", east);
+        roads.put("west", west);
+
+        // Create queues and link them to roads
+        queues.put("north", new CarQueue(north, "north"));
+        queues.put("south", new CarQueue(south, "south"));
+        queues.put("east", new CarQueue(east, "east"));
+        queues.put("west", new CarQueue(west, "west"));
     }
 
     public void update() 
     {
-        this.time++;
-        if (this.time > this.duration) 
+        time++;
+        if (time > duration) 
         {
-            this.running = false;
+            running = false;
             return;
         }
-        // Update lights
-        this.trafficLights.get("north").update();
-        //this.trafficLights.get("south").update();
-        this.trafficLights.get("east").update();
-        //this.trafficLights.get("west").update();
-        // Update queues and cars
-        // Add new cars if Math.random() < arrivalProb
-        // Move cars if free
+
+        // Update unique traffic light objects
+        Set<TrafficLight> updated = new HashSet<>(trafficLights.values());
+        for (TrafficLight tl : updated) tl.update();
+
+        // Spawn cars in each queue
+        for (CarQueue q : queues.values()) {
+            if (Math.random() < arrivalProb) {
+                Place start = q.getRoad().getFirstPlace();
+                if (start != null && start.getOccupiedBy() == null) {
+                    Color[] colors={Color.RED,Color.BLUE,Color.GREEN,Color.ORANGE,Color.PURPLE};
+                    Color carColor= colors[new Random().nextInt(colors.length)];
+                    Car newCar = new Car(carColor, start, q.getDirection());
+                    q.addCar(newCar);
+                    cars.add(newCar);
+                    totalCreated++;
+                }
+            }
+            // local queue movement (push into road if free) is handled by road movement loop
+        }
+
+        // Move cars along roads (process each road separately to avoid collisions)
+        for (String dir : Arrays.asList("north", "south", "east", "west")) {
+            Road r = roads.get(dir);
+            TrafficLight light = trafficLights.get(dir);
+            List<Place> placeList = r.getAllPlaces();
+            // move from tail to head to avoid overwriting places
+            for (int i = placeList.size() - 1; i >= 0; i--) {
+                Place p = placeList.get(i);
+                Car occupant = p.getOccupiedBy();
+                if (occupant != null) {
+                    // If car is at road's last place, then it should exit next move
+                    if (occupant.canMove()) {
+                        // If next place is intersection entry, check light
+                        Place next = occupant.getPlace().next();
+                        boolean enteringIntersection = (next != null && r.isIntersectionEntry(next));
+                        if (enteringIntersection) {
+                            // allow entry only if corresponding light is green
+                            if ("green".equals(light.getState())) {
+                                occupant.move();
+                            } else {
+                                // wait
+                            }
+                        } else {
+                            occupant.move();
+                        }
+                    }
+                    // if at end (no next), remove car
+                    if (occupant.atEnd()) {
+                        finishedCars.add(occupant);
+                        totalExited++;
+                    }
+                }
+            }
+        }
+
+        // remove finished cars from active list
+        Iterator<Car> it = cars.iterator();
+        while (it.hasNext()) {
+            Car c = it.next();
+            if (c.atEnd()) it.remove();
+        }
     }
 
     public boolean isRunning() 
     { 
-        return this.running; 
+        return running; 
     }
+
     public void addCar(Car car)
     {
         cars.add(car);
     }
+
     public List<Car> getAllCars() 
     { 
-        return cars; 
+        return new ArrayList<>(cars); 
     }
+
     public TrafficLight getTrafficLight(String dir) 
     { 
         return this.trafficLights.get(dir); 
     }
+
     public String getStats() 
     { 
-        return "Cars traversed: " + this.cars.size(); 
-    } // Example
+        return "Time: " + time + "\nTotal created: " + totalCreated + "\nTotal exited: " + totalExited + "\nActive: " + cars.size();
+    } 
 }
 
-// Core class stubs (as per project)
+//Place class 
 class Place 
 { 
     int row, col; 
-    private boolean occupied; /* ... */ 
+    private boolean blocked; 
     private Car occupiedBy;
     private Place nextPlace;
+
     public Place(int row, int col)
     {
         this.row = row;
         this.col = col;
         this.occupiedBy = null;
-        this.occupied = false;
+        this.blocked = false;
         this.nextPlace = null;
     }
+
     public boolean freeToMove()
     {
-        return this.occupiedBy == null && !this.occupied;
+        return this.occupiedBy == null && !this.blocked;
     }
+
     public Place next()
     {
         return this.nextPlace;
     }
+
     public void setNext(Place next)
     {
         this.nextPlace = next;
     }
+
     public void block()
     {
-        this.occupied = true;
+        this.blocked = true;
     }
+
     public void unblock()
     {
-        this.occupied = false;
+        this.blocked = false;
     }
+
     public Car getOccupiedBy()
     {
         return this.occupiedBy;
     }
+
     public void setOccupiedBy(Car car)
     {
         this.occupiedBy = car;
     }
 }
+
+//Car class 
 class Car 
 { 
     private Place place; 
@@ -267,8 +396,8 @@ class Car
         this.place = place;
         this.direction = direction;
         this.lastPlace = null;
-        this.place.setOccupiedBy(this);
         this.left = false;
+        if (place != null) place.setOccupiedBy(this);
     }
     public Place getPlace() 
     { 
@@ -281,37 +410,54 @@ class Car
     public String getDirection()
     {
         return this.direction;
-    }/* move, etc. */ 
-    public boolean canMove(){
-        Place next = place.next();
-        return next!= null && next.freeToMove();
     }
+
+    public boolean canMove(){
+        Place next = (place == null) ? null : place.next();
+        return next != null && next.freeToMove();
+    }
+
     public void move()
     {
-        if (!canMove()) return;
-        if(this.lastPlace != null)
-        {
-            this.lastPlace.setOccupiedBy(null);
-            this.lastPlace = this.place;
-            this.place = this.place.next();
-            this.place.setOccupiedBy(this);
+        if (place == null) return;
+        Place next = place.next();
+        if (next == null) {
+            // reached end, mark left and clear occupancy of current
+            if (lastPlace != null) lastPlace.setOccupiedBy(null);
+            place.setOccupiedBy(null);
+            place = null;
+            left = true;
+            return;
         }
-        if(this.place.next() == null)
-        {
-            this.left = true;
-        }    
+        // free lastPlace (two-cell car behavior can be extended)
+        if (lastPlace != null) {
+            lastPlace.setOccupiedBy(null);
+        }
+        lastPlace = place;
+        place = next;
+        place.setOccupiedBy(this);
+        // mark left if next has no next
+        if (place.next() == null) {
+            // on next iteration, atEnd will be true after move
+        }
     }
+
     public boolean atEnd()
-        {
-            return this.left;
-        }
-    
+    {
+        return this.left;
+    }
 }
+
+// Road : a linked list of Places 
 class Road 
-{ 
-    private List<Place> places;
-    private String direction;
-    public Road(String direction, int length,int startRow, int startCol,boolean isHorizontal)
+{
+    private final List<Place> places;
+    private final String direction;
+
+    // For simplicity we mark one particular place as intersection entry if needed
+    private final int intersectionIndex; // index of place that is entry to intersection (approx)
+
+    public Road(String direction, int length, int startRow, int startCol, boolean isHorizontal)
     {
         this.direction = direction;
         this.places = new ArrayList<>();
@@ -328,11 +474,15 @@ class Road
             }
             previous = current;
         }
+        // choose intersection entry as last-but-two for safety
+        this.intersectionIndex = Math.max(0, places.size() -3);
     }
+
     public Place getFirstPlace() 
     {
         return this.places.isEmpty() ? null : this.places.get(0);
     }
+
     public Place getPlaceAt(int index)
     {
         if (index >=0 && index < places.size())
@@ -341,46 +491,58 @@ class Road
         }
         return null;
     }
+
+    public List<Place> getAllPlaces() {
+        return places;
+    }
+
     public String getDirection()
     {
         return this.direction;
     }
+
+    public boolean isIntersectionEntry(Place p) {
+        int idx = places.indexOf(p);
+        return idx == intersectionIndex;
+    }
 }
+
+// TrafficLight 
 class TrafficLight 
 { 
     private String state; 
     private int greenDuration;
     private int yellowDuration;
     private int redDuration;
-    private int timeElasped = 0;
+    private int timeElapsed = 0;
     public TrafficLight(int greenDuration, int yellowDuration, int redDuration, String state)
     {
         this.state = state;
-        this.greenDuration = greenDuration;
-        this.yellowDuration = yellowDuration;
-        this.redDuration = redDuration;
+        this.greenDuration = Math.max(1, greenDuration);
+        this.yellowDuration = Math.max(1, yellowDuration);
+        this.redDuration = Math.max(1, redDuration);
     }
     public String getState() 
     { 
         return this.state; 
-    } /* update */ 
+    }
     public void update()
     {
-        this.timeElasped++;
-        if(this.state.equals("green") && this.timeElasped >= this.greenDuration)
+        timeElapsed++;
+        if(this.state.equals("green") && this.timeElapsed >= this.greenDuration)
         {
             this.state = "yellow";
-            this.timeElasped = 0;
-        } else if(this.state.equals("yellow") && this.timeElasped >= this.yellowDuration)
+            this.timeElapsed = 0;
+        } else if(this.state.equals("yellow") && this.timeElapsed >= this.yellowDuration)
         {
             this.state = "red";
-            this.timeElasped = 0;
-        } else if(this.state.equals("red") && this.timeElasped >= this.redDuration)
+            this.timeElapsed = 0;
+        } else if(this.state.equals("red") && this.timeElapsed >= this.redDuration)
         {
             this.state = "green";
-            this.timeElasped = 0;
+            this.timeElapsed = 0;
         }
-        
+
     }
     public void setTimings(int greenTime, int redTime)
     {
@@ -388,37 +550,34 @@ class TrafficLight
         this.redDuration = redTime;
     }
 }
+
+// CarQueue : manages arrivals for each road 
 class CarQueue 
-{ /* queue of cars */ 
+{
     private Queue<Car> cars;
     private Road road;
     private String direction;
+
     public CarQueue(Road road, String direction)
     {
         this.cars = new LinkedList<>();
         this.road =  road;
         this.direction = direction;
     }
-    public void update(double arrivalProb) // add options to add, move, and remove
+
+    public void update(double arrivalProb) 
     {
-        if(Math.random() < arrivalProb)
-        {
-            Place startPlace = road.getFirstPlace();
-            if(startPlace != null && startPlace.getOccupiedBy() == null)
-            {
-                Car newCar = new Car(Color.RED, startPlace, direction);
-                cars.offer(newCar);
+        // This method is unused in this refactor; Simulator handles spawn by checking road first place
+        if (Math.random() < arrivalProb) {
+            Place start = road.getFirstPlace();
+            if (start != null && start.getOccupiedBy() == null) {
+                Car c = new Car(Color.RED, start, direction);
+                cars.offer(c);
             }
         }
-        if(!cars.isEmpty())
-        {
-            Car frontCar = cars.peek();
-            if(frontCar.getPlace().getOccupiedBy() == frontCar && frontCar.canMove())
-            {
-                frontCar.move();
-            }
-        }
+        // movement handled by simulator
     }
+
     public void addCar(Car car)
     {
         this.cars.offer(car);
@@ -435,6 +594,8 @@ class CarQueue
     {
         return new ArrayList<>(cars);
     }
-    
-        
+    public Road getRoad() { return this.road; }
+    public String getDirection() { return this.direction; }
 }
+
+
