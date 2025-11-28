@@ -37,11 +37,11 @@ public class TrafficFX extends Application
     public void start(Stage stage) 
     {
         // User inputs
-        TextInputDialog dialogNS = new TextInputDialog("30");
+        TextInputDialog dialogNS = new TextInputDialog("5");
         dialogNS.setHeaderText("Green time North/South (seconds):");
         int greenNSsec = (Integer.parseInt(dialogNS.showAndWait().orElse("30")));
 
-        TextInputDialog dialogEW = new TextInputDialog("30");
+        TextInputDialog dialogEW = new TextInputDialog("5");
         dialogEW.setHeaderText("Green time East/West (seconds):");
         int greenEWsec = (Integer.parseInt(dialogEW.showAndWait().orElse("30")));
 
@@ -49,7 +49,7 @@ public class TrafficFX extends Application
         dialogProb.setHeaderText("Car arrival probability (1/n, e.g., 6):");
         int probN = Integer.parseInt(dialogProb.showAndWait().orElse("6"));
 
-        TextInputDialog dialogDuration = new TextInputDialog("10000");
+        TextInputDialog dialogDuration = new TextInputDialog("500");
         dialogDuration.setHeaderText("Simulation duration (timer units):");
         int duration = Integer.parseInt(dialogDuration.showAndWait().orElse("10000"));
 
@@ -203,11 +203,11 @@ class Simulator
         this.duration = dur;
 
         // Set yellow to 6 * target ticks (project requests yellow = 6 units)
-        int yellow = 6 * (int)TrafficFX.target;
+        int yellow = 2 * (int)TrafficFX.target;
 
         // Create traffic lights: NS green initially, EW red initially
-        TrafficLight nsLight = new TrafficLight(greenNS, yellow, greenEW, "green");
-        TrafficLight ewLight = new TrafficLight(greenEW, yellow, greenNS, "red");
+        TrafficLight nsLight = new TrafficLight(greenNS, yellow, greenEW + yellow, "green");
+        TrafficLight ewLight = new TrafficLight(greenEW, yellow, greenNS + yellow, "red");
         trafficLights.put("north", nsLight);
         trafficLights.put("south", nsLight); // north and south share
         trafficLights.put("east", ewLight);
