@@ -218,10 +218,10 @@ class Simulator
         Road south = new Road("south", 12, OFFSET_ROW + 18, OFFSET_COL + 14, false); // vertical upwards
         Road east  = new Road("east", 12, OFFSET_ROW + 6, OFFSET_COL + 18, true); // horizontal leftwards
         Road west  = new Road("west", 12, OFFSET_ROW + 14, OFFSET_COL - 12, true); // horizontal rightwards*/
-        Road north=new Road("north",8,0,12, false,true);
-        Road south=new Road("south",8,23,12, false,false);
-        Road east= new Road("east",8,12,23,true,false);
-        Road west= new Road("west",8,12,0,true,true);
+        Road north=new Road("north",32,0 - 4,10, false,true, 10);
+        Road south=new Road("south",32,29,13, false,false, 13);
+        Road east= new Road("east",32,13,29,true,false, 13);
+        Road west= new Road("west",32,10,-1,true,true, 7);
         
 
         roads.put("north", north);
@@ -270,58 +270,40 @@ class Simulator
             Road r = roads.get(dir);
             TrafficLight light = trafficLights.get(dir);
             List<Place> placeList = r.getAllPlaces();
-            // move from tail to head to avoid overwriting places
             for (int i = placeList.size() - 1; i >= 0; i--) {
                 Place p = placeList.get(i);
                 Car occupant = p.getOccupiedBy();
-                if (occupant ==null){
+                
+                // Skip empty places
+                if (occupant == null) continue; 
+
+                // Determine next step
+                Place next = p.next();
+
+                //Car is exiting screen
+                if (next == null) {
+                    occupant.move(); 
+                    finishedCars.add(occupant);
+                    totalExited++;
                     continue;
                 }
-                Place cur= occupant.getPlace();
-                if(cur==null){
-                    continue;
-                }
-                
-                Place next= occupant.getPlace().next();
-                
-                if (next== null){
-                    occupant. move();
-                    if(occupant.atEnd()){
-                        finishedCars.add(occupant);
-                        totalExited++;
+
+                // check to see if car enters intersection
+                boolean enteringIntersection = r.isIntersectionEntry(p); 
+
+                if (enteringIntersection) {
+                    // move if the light is green and the car can
+                    if ("green".equals(light.getState()) && next.freeToMove()) {
+                        occupant.move();
                     }
-                    continue;
-                }
-                
-                /*if (occupant != null) {
-                    // If car is at road's last place, then it should exit next move
-                    if (occupant.canMove()) {
-                        // If next place is intersection entry, check light
-                        Place next = occupant.getPlace().next();
-                        boolean enteringIntersection = (next != null && r.isIntersectionEntry(next));*/
-                boolean enteringIntersection=r.isIntersectionEntry(next);
-               
-                        if (enteringIntersection) {
-                            // allow entry only if corresponding light is green
-                            if ("green".equals(light.getState()) && next.freeToMove()) {
-                                occupant.move();
-                            } else {
-                               //wait
-                            }
-                        } else {
-                            if(next.freeToMove()){
-                            occupant.move();
-                        }
-                    }
-                    // if at end (no next), remove car
-                    if (occupant.atEnd()) {
-                        finishedCars.add(occupant);
-                        totalExited++;
+                    // wait
+                } else {
+                    if (next.freeToMove()) {
+                        occupant.move();
                     }
                 }
             }
-        
-
+        }
         // remove finished cars from active list
         Iterator<Car> it = cars.iterator();
         while (it.hasNext()) {
@@ -480,15 +462,16 @@ class Road
 {
     private final List<Place> places;
     private final String direction;
-    
+    private final int stopIndex;
 
     // For simplicity we mark one particular place as intersection entry if needed
     private final int intersectionIndex; // index of place that is entry to intersection (approx)
 
-    public Road(String direction, int length, int startRow, int startCol, boolean isHorizontal,boolean forward  )
+    public Road(String direction, int length, int startRow, int startCol, boolean isHorizontal,boolean forward, int stopIndex  )
     {
         this.direction = direction;
         this.places = new ArrayList<>();
+        this.stopIndex = stopIndex;
         Place previous = null;
         for(int i = 0; i < length; i++)
         {
@@ -542,8 +525,7 @@ class Road
     }
 
     public boolean isIntersectionEntry(Place p) {
-        int idx = places.indexOf(p);
-        return idx == intersectionIndex;
+        return places.indexOf(p) == stopIndex;
     }
 }
 
