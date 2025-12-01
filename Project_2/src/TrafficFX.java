@@ -72,7 +72,8 @@ public class TrafficFX extends Application
             @Override
             public void handle(long now) 
             {
-                if (lastUpdate == 0) {
+                if (lastUpdate == 0) 
+                {
                     lastUpdate = now;
                     return;
                 }
@@ -208,12 +209,7 @@ class Simulator
         trafficLights.put("south", nsLight); // north and south share
         trafficLights.put("east", ewLight);
         trafficLights.put("west", ewLight);
-
-        // Create roads: each road is length 12 places (tweakable)
-        /*Road north = new Road("north", 12, OFFSET_ROW - 12, OFFSET_COL + 6, false); // vertical downwards toward intersection
-        Road south = new Road("south", 12, OFFSET_ROW + 18, OFFSET_COL + 14, false); // vertical upwards
-        Road east  = new Road("east", 12, OFFSET_ROW + 6, OFFSET_COL + 18, true); // horizontal leftwards
-        Road west  = new Road("west", 12, OFFSET_ROW + 14, OFFSET_COL - 12, true); // horizontal rightwards*/
+        
         Road north=new Road("north",32,0 - 4,10, false,true, 10);
         Road south=new Road("south",32,29,13, false,false, 13);
         Road east= new Road("east",32,13,29,true,false, 13);
@@ -246,10 +242,13 @@ class Simulator
         for (TrafficLight tl : updated) tl.update();
 
         // Spawn cars in each queue
-        for (CarQueue q : queues.values()) {
-            if (Math.random() < arrivalProb) {
+        for (CarQueue q : queues.values()) 
+        {
+            if (Math.random() < arrivalProb) 
+            {
                 Place start = q.getRoad().getFirstPlace();
-                if (start != null && start.getOccupiedBy() == null) {
+                if (start != null && start.getOccupiedBy() == null) 
+                {
                     Color[] colors={Color.RED,Color.BLUE,Color.GREEN,Color.ORANGE,Color.PURPLE};
                     Color carColor= colors[new Random().nextInt(colors.length)];
                     Car newCar = new Car(carColor, start, q.getDirection());
@@ -262,11 +261,13 @@ class Simulator
         }
 
         // Move cars along roads (process each road separately to avoid collisions)
-        for (String dir : Arrays.asList("north", "south", "east", "west")) {
+        for (String dir : Arrays.asList("north", "south", "east", "west")) 
+        {
             Road r = roads.get(dir);
             TrafficLight light = trafficLights.get(dir);
             List<Place> placeList = r.getAllPlaces();
-            for (int i = placeList.size() - 1; i >= 0; i--) {
+            for (int i = placeList.size() - 1; i >= 0; i--) 
+            {
                 Place p = placeList.get(i);
                 Car occupant = p.getOccupiedBy();
                 
@@ -277,7 +278,8 @@ class Simulator
                 Place next = p.next();
 
                 //Car is exiting screen
-                if (next == null) {
+                if (next == null) 
+                {
                     occupant.move(); 
                     finishedCars.add(occupant);
                     totalExited++;
@@ -287,14 +289,18 @@ class Simulator
                 // check to see if car enters intersection
                 boolean enteringIntersection = r.isIntersectionEntry(p); 
 
-                if (enteringIntersection) {
+                if (enteringIntersection) 
+                {
                     // move if the light is green and the car can
-                    if ("green".equals(light.getState()) && next.freeToMove()) {
+                    if ("green".equals(light.getState()) && next.freeToMove()) 
+                    {
                         occupant.move();
                     }
                     // wait
-                } else {
-                    if (next.freeToMove()) {
+                } else 
+                {
+                    if (next.freeToMove()) 
+                    {
                         occupant.move();
                     }
                 }
@@ -426,7 +432,8 @@ class Car
     {
         if (place == null) return;
         Place next = place.next();
-        if (next == null) {
+        if (next == null) 
+        {
             // reached end, mark left and clear occupancy of current
             if (lastPlace != null) lastPlace.setOccupiedBy(null);
             place.setOccupiedBy(null);
@@ -435,14 +442,16 @@ class Car
             return;
         }
         // free lastPlace (two-cell car behavior can be extended)
-        if (lastPlace != null) {
+        if (lastPlace != null) 
+        {
             lastPlace.setOccupiedBy(null);
         }
         lastPlace = place;
         place = next;
         place.setOccupiedBy(this);
         // mark left if next has no next
-        if (place.next() == null) {
+        if (place.next() == null) 
+        {
             // on next iteration, atEnd will be true after move
         }
     }
@@ -472,24 +481,20 @@ class Road
         for(int i = 0; i < length; i++)
         {
             int row, col;
-            if(isHorizontal){
+            if(isHorizontal)
+            {
                 col= forward ? startCol+i : startCol -i;
                 row= startRow;
-            }else{
+            }else
+            {
                 row= forward ? startRow+i : startRow -i;
                 col= startCol;
             }
             Place current= new Place(row, col);
             places.add(current);
-            if(previous!= null){
-                previous.setNext(current);
-            /*int row = isHorizontal ? startRow : startRow + i;
-            int col = isHorizontal ? startCol + i: startCol;
-            Place current = new Place(row, col);
-            places.add(current);
-            if(previous != null)
+            if(previous!= null)
             {
-                previous.setNext(current);*/
+                previous.setNext(current);
             }
             previous = current;
         }
@@ -511,7 +516,8 @@ class Road
         return null;
     }
 
-    public List<Place> getAllPlaces() {
+    public List<Place> getAllPlaces() 
+    {
         return places;
     }
 
@@ -520,7 +526,8 @@ class Road
         return this.direction;
     }
 
-    public boolean isIntersectionEntry(Place p) {
+    public boolean isIntersectionEntry(Place p) 
+    {
         return places.indexOf(p) == stopIndex;
     }
 }
@@ -586,9 +593,11 @@ class CarQueue
     public void update(double arrivalProb) 
     {
         // This method is unused in this refactor; Simulator handles spawn by checking road first place
-        if (Math.random() < arrivalProb) {
+        if (Math.random() < arrivalProb) 
+        {
             Place start = road.getFirstPlace();
-            if (start != null && start.getOccupiedBy() == null) {
+            if (start != null && start.getOccupiedBy() == null) 
+            {
                 Car c = new Car(Color.RED, start, direction);
                 cars.offer(c);
             }
@@ -612,8 +621,14 @@ class CarQueue
     {
         return new ArrayList<>(cars);
     }
-    public Road getRoad() { return this.road; }
-    public String getDirection() { return this.direction; }
+    public Road getRoad() 
+    { 
+        return this.road; 
+    }
+    public String getDirection() 
+    { 
+        return this.direction; 
+    }
 }
 
 
