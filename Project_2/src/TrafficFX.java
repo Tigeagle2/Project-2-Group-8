@@ -1,10 +1,9 @@
 /**
- *
- * Author: Caden Douglas, walker Mangham, Suresh Basnet, Jeremiah Brand
+ * @Assignment: Group Project 2
+ * Author: Caden Douglas, Walker Mangham, Suresh Basnet, Jeremiah Brand
  * @due 12/01/2025
- * NOTE: Run with JavaFX on your module path.
+ * 
  */
-
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -30,6 +29,7 @@ public class TrafficFX extends Application
     private static final int CANVAS_SIZE = 600;
 
     @Override
+    // Start method for JavaFX
     public void start(Stage stage) 
     {
         // User inputs
@@ -55,9 +55,6 @@ public class TrafficFX extends Application
 
         // initialize simulator with proper timings, arrival probability per tick
         simulator = new Simulator(greenNS, greenEW, 1.0 / Math.max(1, probN), duration);
-
-        // create a sample car to show initial state (optional)
-        // Place p = new Place(5,5); Car c = new Car(Color.BLUE, p, "north"); simulator.addCar(c);
 
         canvas = new Canvas(CANVAS_SIZE, CANVAS_SIZE);
         StackPane root = new StackPane(canvas);
@@ -96,7 +93,7 @@ public class TrafficFX extends Application
             }
         }.start();
     }
-
+    //Draws the roads and the traffic Lights
     private void draw() 
     {
         GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -137,7 +134,7 @@ public class TrafficFX extends Application
             }
         }
     }
-
+    //Updates the visual color on the lights
     private void drawLight(GraphicsContext gc, double x, double y, String state) 
     {
         gc.setFill(Color.BLACK);
@@ -149,9 +146,9 @@ public class TrafficFX extends Application
         gc.setFill("green".equals(state) ? Color.LIMEGREEN : Color.DARKGRAY);
         gc.fillOval(x + 2, y + 42, 16, 16);
     }
-
+    //returns a cars position
     private Point2D getCarPosition(Car car) 
-{
+    {
    
         // Map Place row/col to pixels based on a simple offset and CELL_SIZE
         Place place = car.getPlace();
@@ -168,8 +165,6 @@ public class TrafficFX extends Application
         launch(args);
     }
 }
-
-
 
 //Simulator: orchestrates roads, queues, traffic lights, and car movement 
 class Simulator 
@@ -193,13 +188,13 @@ class Simulator
     // intersection placement constants (logical grid positions chosen to map to drawing)
     private static final int OFFSET_ROW = 5;
     private static final int OFFSET_COL = 5;
-
+    // Simulator Class for controlling the simulation
     public Simulator(int greenNS, int greenEW, double prob, int dur) 
     {
         this.arrivalProb = prob;
         this.duration = dur;
 
-        // Set yellow to 6 * target ticks (project requests yellow = 6 units)
+        // Set yellow to 2 * target ticks
         int yellow = 2 * (int)TrafficFX.target;
 
         // Create traffic lights: NS green initially, EW red initially
@@ -209,13 +204,12 @@ class Simulator
         trafficLights.put("south", nsLight); // north and south share
         trafficLights.put("east", ewLight);
         trafficLights.put("west", ewLight);
-        
+        // creates the road objects
         Road north=new Road("north",32,0 - 4,10, false,true, 10);
         Road south=new Road("south",32,29,13, false,false, 13);
         Road east= new Road("east",32,13,29,true,false, 13);
         Road west= new Road("west",32,10,-1,true,true, 7);
         
-
         roads.put("north", north);
         roads.put("south", south);
         roads.put("east", east);
@@ -227,7 +221,7 @@ class Simulator
         queues.put("east", new CarQueue(east, "east"));
         queues.put("west", new CarQueue(west, "west"));
     }
-
+    //updates the simulation
     public void update() 
     {
         time++;
@@ -356,7 +350,7 @@ class Place
         this.blocked = false;
         this.nextPlace = null;
     }
-
+    // Returns a bool to tell the program if a car can move onto this place
     public boolean freeToMove()
     {
         return this.occupiedBy == null && !this.blocked;
@@ -427,7 +421,7 @@ class Car
         Place next = (place == null) ? null : place.next();
         return next != null && next.freeToMove();
     }
-
+    // makes the car move if its able to
     public void move()
     {
         if (place == null) return;
@@ -501,7 +495,7 @@ class Road
         // choose intersection entry as last-but-two for safety
         this.intersectionIndex = Math.max(0, places.size() -3);
     }
-
+    // returns the first place on the road
     public Place getFirstPlace() 
     {
         return this.places.isEmpty() ? null : this.places.get(0);
@@ -525,7 +519,7 @@ class Road
     {
         return this.direction;
     }
-
+    // tells cars where the intersection starts
     public boolean isIntersectionEntry(Place p) 
     {
         return places.indexOf(p) == stopIndex;
@@ -551,6 +545,7 @@ class TrafficLight
     { 
         return this.state; 
     }
+    //updates the traffic lights state based on how many times update is called
     public void update()
     {
         timeElapsed++;
@@ -592,7 +587,7 @@ class CarQueue
 
     public void update(double arrivalProb) 
     {
-        // This method is unused in this refactor; Simulator handles spawn by checking road first place
+        // This method is unused 
         if (Math.random() < arrivalProb) 
         {
             Place start = road.getFirstPlace();
