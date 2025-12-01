@@ -1,11 +1,7 @@
 /**
  *
- * Author: Caden Douglas
+ * Author: Caden Douglas, walker Mangham, Suresh Basnet, Jeremiah Brand
  * @due 12/01/2025
- *
- * Fixed and completed version of the original starter code.
- * Implements Roads, Places, CarQueue, TrafficLight, Simulator, and car movement.
- *
  * NOTE: Run with JavaFX on your module path.
  */
 
